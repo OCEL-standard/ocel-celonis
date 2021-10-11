@@ -29,6 +29,7 @@ def __add_row_to_table(oct, table, row):
 
 def __add_foreign_key(oct, source_table, source_column, target_table, target_column):
     oct.foreign_keys.add((source_table, source_column, target_table, target_column))
+    #oct.foreign_keys.add((target_table, target_column, source_table, source_column))
 
 
 def read_event(log, oct, ev_id, event, allowed_object_types=None):
@@ -63,8 +64,9 @@ def read_event(log, oct, ev_id, event, allowed_object_types=None):
                                 evrel = {"SOURCE_EVID_" + objtype: ev_id + ":" + objid,
                                          "TARGET_EVID_" + objtype2: ev_id + ":" + objid2}
                                 __add_row_to_table(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", evrel)
-                                __add_foreign_key(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", "SOURCE_EVID_" + objtype, objtype + "_EVENTS", "EVID_" + objtype)
-                                __add_foreign_key(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", "TARGET_EVID_" + objtype2, objtype2 + "_EVENTS", "EVID_" + objtype2)
+                                if False:
+                                    __add_foreign_key(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", "SOURCE_EVID_" + objtype, objtype + "_EVENTS", "EVID_" + objtype)
+                                    __add_foreign_key(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", "TARGET_EVID_" + objtype2, objtype2 + "_EVENTS", "EVID_" + objtype2)
 
 
 def read_ocel(log, allowed_object_types=None):
@@ -98,28 +100,27 @@ def export_foreign_keys(oct, target_path):
 def export_knowledge_yaml(oct):
     ret = []
     ret.append("eventLogsMetadata:")
-    ret.append("\teventLogs:")
+    ret.append("    eventLogs:")
     for ot in oct.object_types:
-        ret.append("\t\t- id: "+ot)
-        ret.append("\t\t  displayName: "+ot)
-        ret.append("\t\t  pql: \""+ot+"_EVENTS\".\"ACT_"+ot+"\"")
-        ret.append("\t\t  filterIds: []")
-    ret.append("\ttransitions:")
+        ret.append("        - id: "+ot)
+        ret.append("          displayName: "+ot)
+        ret.append("          pql: '\""+ot+"_EVENTS\".\"ACT_"+ot+"\"'")
+    ret.append("    transitions:")
     for trans in oct.transitions:
-        ret.append("\t\t- id: "+trans[0]+"_"+trans[1])
-        ret.append("\t\t  displayName: "+trans[0]+"_"+trans[1])
-        ret.append("\t\t  firstEventLogId: "+trans[0])
-        ret.append("\t\t  secondEventLogId: "+trans[1])
-        ret.append("\t\t  type: INTERLEAVED")
+        ret.append("        - id: "+trans[0]+"_"+trans[1])
+        ret.append("          displayName: "+trans[0]+"_"+trans[1])
+        ret.append("          firstEventLogId: "+trans[0])
+        ret.append("          secondEventLogId: "+trans[1])
+        ret.append("          type: INTERLEAVED")
     return "\n".join(ret)
 
 
 def export_model_yaml(oct):
     ret = []
-    ret.append("\tsettings:")
-    ret.append("\t\teventLogs:")
+    ret.append("settings:")
+    ret.append("    eventLogs:")
     for ot in oct.object_types:
-        ret.append("\t\t\t- eventLog: "+ot)
+        ret.append("        - eventLog: "+ot)
     return "\n".join(ret)
 
 
@@ -142,8 +143,8 @@ def upload_to_celonis(oct, data_pool, data_model):
             traceback.print_exc()
     for fk in oct.foreign_keys:
         try:
-            data_model.create_foreign_key(fk[0], fk[2],
-                                      [(fk[1], fk[3])])
+            data_model.create_foreign_key(fk[2], fk[0],
+                                      [(fk[3], fk[1])])
         except:
             traceback.print_exc()
     for objtype in oct.object_types:
