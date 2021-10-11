@@ -1,3 +1,4 @@
 ocel
 pandas
 pycelonis
+frozendict
