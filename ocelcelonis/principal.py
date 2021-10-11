@@ -94,7 +94,7 @@ def read_ocel(log, allowed_object_types=None):
     for ev_id, ev in log["ocel:events"].items():
         objects_in_events = objects_in_events.union(ev["ocel:omap"])
         read_event(log, oct, ev_id, ev, allowed_object_types=allowed_object_types)
-    fix_foreign_keys(oct)
+    #fix_foreign_keys(oct)
     oct.fix()
     return oct
 
