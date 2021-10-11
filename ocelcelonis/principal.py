@@ -210,3 +210,7 @@ def output_yaml(oct):
     F.write(stru)
     F.write("\n")
     F.close()
+
+
+if __name__ == "__main__":
+    cli()
