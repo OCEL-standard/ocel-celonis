@@ -13,6 +13,7 @@ class OcelCelonisTransf:
         self.tables = {}
         self.foreign_keys = set()
         self.object_types = set()
+        self.transitions = set()
 
     def fix(self):
         for table in self.tables:
@@ -54,6 +55,7 @@ def read_event(log, oct, ev_id, event, allowed_object_types=None):
                     if allowed_object_types is None or objtype2 in allowed_object_types:
                         if objtype < objtype2 or (objtype == objtype2 and objid <= objid2):
                             if objtype != objtype2:
+                                oct.transitions.add((objtype, objtype2))
                                 objrel = {"SOURCE_CASE_" + objtype: objid, "TARGET_CASE_" + objtype2: objid2}
                                 __add_row_to_table(oct, "CONNECT_" + objtype + "_CASES_" + objtype2 + "_CASES", objrel)
                                 __add_foreign_key(oct, "CONNECT_" + objtype + "_CASES_" + objtype2 + "_CASES", "SOURCE_CASE_" + objtype, objtype + "_CASES", "CASE_" + objtype)
@@ -91,6 +93,34 @@ def export_foreign_keys(oct, target_path):
     for fk in fk_list:
         F.write(str(fk)+"\n")
     F.close()
+
+
+def export_knowledge_yaml(oct):
+    ret = []
+    ret.append("eventLogsMetadata:")
+    ret.append("\teventLogs:")
+    for ot in oct.object_types:
+        ret.append("\t\t- id: "+ot)
+        ret.append("\t\t  displayName: "+ot)
+        ret.append("\t\t  pql: \""+ot+"_EVENTS\".\"ACT_"+ot+"\"")
+        ret.append("\t\t  filterIds: []")
+    ret.append("\ttransitions:")
+    for trans in oct.transitions:
+        ret.append("\t\t- id: "+trans[0]+"_"+trans[1])
+        ret.append("\t\t  displayName: "+trans[0]+"_"+trans[1])
+        ret.append("\t\t  firstEventLogId: "+trans[0])
+        ret.append("\t\t  secondEventLogId: "+trans[1])
+        ret.append("\t\t  type: INTERLEAVED")
+    return "\n".join(ret)
+
+
+def export_model_yaml(oct):
+    ret = []
+    ret.append("\tsettings:")
+    ret.append("\t\teventLogs:")
+    for ot in oct.object_types:
+        ret.append("\t\t\t- eventLog: "+ot)
+    return "\n".join(ret)
 
 
 def get_data_model(data_pool, name):
@@ -141,7 +171,8 @@ def cli():
     if output_mode == 1:
         output_csv(oct)
     elif output_mode == 2:
-        pass
+        output_celonis(oct)
+    output_yaml(oct)
 
 
 def output_csv(oct):
@@ -160,3 +191,16 @@ def output_celonis(oct):
     data_model_name = input("Insert the name of the target data model (must be empty) -> ")
     data_model = get_data_model(data_pool, data_model_name)
     upload_to_celonis(oct, data_pool, data_model)
+
+
+def output_yaml(oct):
+    file_path = input("insert the path where the YAML should be inserted -> ")
+    F = open(file_path, "w")
+    stru = export_knowledge_yaml(oct)
+    F.write("YAML for knowledge model:\n\n")
+    F.write(stru)
+    stru = export_model_yaml(oct)
+    F.write("\n\nYAML for process model:\n\n")
+    F.write(stru)
+    F.write("\n")
+    F.close()
