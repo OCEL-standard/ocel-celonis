@@ -152,6 +152,11 @@ def upload_to_celonis(oct, data_pool, data_model):
             data_model.create_process_configuration(case_table=objtype+"_CASES", activity_table=objtype+"_EVENTS", case_column="CASE_"+objtype, activity_column="ACT_"+objtype, timestamp_column="TIME_"+objtype, sorting_column="SORT_TIME_"+objtype)
         except:
             traceback.print_exc()
+    try:
+        print("... loading data model ...")
+        data_model.reload()
+    except:
+        traceback.print_exc()
 
 
 def cli():
