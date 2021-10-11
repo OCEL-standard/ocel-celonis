@@ -137,14 +137,15 @@ def upload_to_celonis(oct, data_pool, data_model):
             data_pool.create_table(oct.tables[table], table, if_exists="error")
         except:
             traceback.print_exc()
+    for table in oct.tables:
         try:
             data_model.add_table_from_pool(table, table)
         except:
             traceback.print_exc()
     for fk in oct.foreign_keys:
         try:
-            data_model.create_foreign_key(fk[2], fk[0],
-                                      [(fk[3], fk[1])])
+            data_model.create_foreign_key(fk[0], fk[2],
+                                      [(fk[1], fk[3])])
         except:
             traceback.print_exc()
     for objtype in oct.object_types:

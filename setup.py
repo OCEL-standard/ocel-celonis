@@ -26,5 +26,10 @@ setup(
         "pandas",
         "pycelonis",
         "frozendict"
-    ]
+    ],
+    entry_points={
+        "console_scripts": [
+            "my_project = ocelcelonis.__main__:main"
+        ]
+    },
 )
