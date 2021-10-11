@@ -6,6 +6,7 @@ import pandas as pd
 import traceback
 import ocel
 from pycelonis import get_celonis
+from statistics import Counter
 
 
 class OcelCelonisTransf:
@@ -64,9 +65,27 @@ def read_event(log, oct, ev_id, event, allowed_object_types=None):
                                 evrel = {"SOURCE_EVID_" + objtype: ev_id + ":" + objid,
                                          "TARGET_EVID_" + objtype2: ev_id + ":" + objid2}
                                 __add_row_to_table(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", evrel)
-                                if False:
-                                    __add_foreign_key(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", "SOURCE_EVID_" + objtype, objtype + "_EVENTS", "EVID_" + objtype)
-                                    __add_foreign_key(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", "TARGET_EVID_" + objtype2, objtype2 + "_EVENTS", "EVID_" + objtype2)
+
+
+def fix_foreign_keys(oct):
+    fk_list = sorted(list(oct.foreign_keys))
+    new_keys = []
+    target_type_counter = Counter()
+    i = 0
+    while i < len(fk_list):
+        fk = list(fk_list[i])
+        if fk[0].startswith("CONNECT_") and fk[2].endswith("_CASES"):
+            target_object_type = fk[2].split("_CASES")[0]
+            if target_type_counter[target_object_type] > 0:
+                # must replicate the table
+                oct.tables[target_object_type+"_CASES_"+str(target_type_counter[target_object_type])] = oct.tables[target_object_type+"_CASES"]
+                new_keys.append((target_object_type+"_EVENTS", "CASE_"+target_object_type, target_object_type+"_CASES_"+str(target_type_counter[target_object_type]), "CASE_"+target_object_type))
+                fk[2] = target_object_type+"_CASES_"+str(target_type_counter[target_object_type])
+            target_type_counter[target_object_type] += 1
+        fk_list[i] = tuple(fk)
+        i = i + 1
+    fk_list = fk_list + new_keys
+    oct.foreign_keys = set(fk_list)
 
 
 def read_ocel(log, allowed_object_types=None):
@@ -75,6 +94,7 @@ def read_ocel(log, allowed_object_types=None):
     for ev_id, ev in log["ocel:events"].items():
         objects_in_events = objects_in_events.union(ev["ocel:omap"])
         read_event(log, oct, ev_id, ev, allowed_object_types=allowed_object_types)
+    fix_foreign_keys(oct)
     oct.fix()
     return oct
 
@@ -90,7 +110,7 @@ def export_as_csv(oct, target_path):
 
 
 def export_foreign_keys(oct, target_path):
-    fk_list = sorted(list(oct.foreign_keys), key=lambda x: (x[0], x[3], x[1], x[2]), reverse=True)
+    fk_list = sorted(list(oct.foreign_keys))
     F = open(target_path, "w")
     for fk in fk_list:
         F.write(str(fk)+"\n")
