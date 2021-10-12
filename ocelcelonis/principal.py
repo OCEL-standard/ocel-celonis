@@ -33,7 +33,7 @@ def __add_foreign_key(oct, source_table, source_column, target_table, target_col
     #oct.foreign_keys.add((target_table, target_column, source_table, source_column))
 
 
-def read_event(log, oct, ev_id, event, allowed_object_types=None):
+def read_event(log, oct, ev_id, event, allowed_object_types=None, allowed_transitions=None):
     for objid in event["ocel:omap"]:
         obj = log["ocel:objects"][objid]
         objtype = obj["ocel:type"]
@@ -56,15 +56,16 @@ def read_event(log, oct, ev_id, event, allowed_object_types=None):
                     objtype2 = obj2["ocel:type"]
                     if allowed_object_types is None or objtype2 in allowed_object_types:
                         if objtype < objtype2 or (objtype == objtype2 and objid <= objid2):
+                            evrel = {"SOURCE_EVID_" + objtype: ev_id + ":" + objid,
+                                     "TARGET_EVID_" + objtype2: ev_id + ":" + objid2}
+                            __add_row_to_table(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", evrel)
+                            objrel = {"SOURCE_CASE_" + objtype: objid, "TARGET_CASE_" + objtype2: objid2}
+                            __add_row_to_table(oct, "CONNECT_" + objtype + "_CASES_" + objtype2 + "_CASES", objrel)
                             if objtype != objtype2:
-                                oct.transitions.add((objtype, objtype2))
-                                objrel = {"SOURCE_CASE_" + objtype: objid, "TARGET_CASE_" + objtype2: objid2}
-                                __add_row_to_table(oct, "CONNECT_" + objtype + "_CASES_" + objtype2 + "_CASES", objrel)
-                                __add_foreign_key(oct, "CONNECT_" + objtype + "_CASES_" + objtype2 + "_CASES", "SOURCE_CASE_" + objtype, objtype + "_CASES", "CASE_" + objtype)
-                                __add_foreign_key(oct, "CONNECT_" + objtype + "_CASES_" + objtype2 + "_CASES", "TARGET_CASE_" + objtype2, objtype2 + "_CASES", "CASE_" + objtype2)
-                                evrel = {"SOURCE_EVID_" + objtype: ev_id + ":" + objid,
-                                         "TARGET_EVID_" + objtype2: ev_id + ":" + objid2}
-                                __add_row_to_table(oct, "CONNECT_" + objtype + "_EVENTS_" + objtype2 + "_EVENTS", evrel)
+                                if allowed_transitions is None or (objtype, objtype2) in allowed_transitions:
+                                    oct.transitions.add((objtype, objtype2))
+                                    __add_foreign_key(oct, "CONNECT_" + objtype + "_CASES_" + objtype2 + "_CASES", "SOURCE_CASE_" + objtype, objtype + "_CASES", "CASE_" + objtype)
+                                    __add_foreign_key(oct, "CONNECT_" + objtype + "_CASES_" + objtype2 + "_CASES", "TARGET_CASE_" + objtype2, objtype2 + "_CASES", "CASE_" + objtype2)
 
 
 def fix_foreign_keys(oct):
@@ -88,12 +89,12 @@ def fix_foreign_keys(oct):
     oct.foreign_keys = set(fk_list)
 
 
-def read_ocel(log, allowed_object_types=None):
+def read_ocel(log, allowed_object_types=None, allowed_transitions=None):
     objects_in_events = set()
     oct = OcelCelonisTransf()
     for ev_id, ev in log["ocel:events"].items():
         objects_in_events = objects_in_events.union(ev["ocel:omap"])
-        read_event(log, oct, ev_id, ev, allowed_object_types=allowed_object_types)
+        read_event(log, oct, ev_id, ev, allowed_object_types=allowed_object_types, allowed_transitions=allowed_transitions)
     #fix_foreign_keys(oct)
     oct.fix()
     return oct
@@ -189,23 +190,39 @@ def cli():
         for obj_id in ev["ocel:omap"]:
             object_types.add(log["ocel:objects"][obj_id]["ocel:type"])
     object_types = ",".join(sorted(list(object_types)))
-    selected_object_types = input("Insert the object types to consider separated by a comma without space (default: "+object_types+"): ")
+    selected_object_types = input("Insert the object types to consider separated by a comma without space (default: "+object_types+") ->")
     if len(selected_object_types) == 0:
         selected_object_types = object_types
+    allowed_transitions = input("Insert the transitions to consider in the model (IMPORTANT: avoid any cycle), where the entities of a transition are split by a , and the entities by ; without any space (example: order,packages;order,items)  ->")
+    if len(allowed_transitions) == 0:
+        allowed_transitions = None
+    else:
+        allowed_transitions = allowed_transitions.split(";")
+        for i in range(len(allowed_transitions)):
+            allowed_transitions[i] = allowed_transitions[i].split(",")
+            allowed_transitions[i] = tuple(sorted(allowed_transitions[i]))
     selected_object_types = selected_object_types.split(",")
-    oct = read_ocel(log, selected_object_types)
+    oct = read_ocel(log, allowed_object_types=selected_object_types, allowed_transitions=allowed_transitions)
     output_mode = int(input("Insert 1) if you want as output the CSVs along with the foreign keys. Insert 2) if you want to connect directly to Celonis -> "))
     if output_mode == 1:
         output_csv(oct)
     elif output_mode == 2:
         output_celonis(oct)
     output_yaml(oct)
+    input("----- FINISHED -----")
 
 
 def output_csv(oct):
-    fk_path = input("Input the TXT file path to which the foreign keys should be saved -> ")
+    user_path = os.path.expanduser('~')
+    default_fk_path = os.path.join(user_path, "foreign.txt")
+    default_csv_path = os.path.join(user_path, "output")
+    fk_path = input("Input the TXT file path to which the foreign keys should be saved (default: "+default_fk_path+") -> ")
+    if len(fk_path) == 0:
+        fk_path = default_fk_path
     export_foreign_keys(oct, fk_path)
-    csv_path = input("Input the folder to which the CSV should be saved -> ")
+    csv_path = input("Input the folder to which the CSV should be saved (default: "+default_csv_path+") -> ")
+    if len(csv_path) == 0:
+        csv_path = default_csv_path
     export_as_csv(oct, csv_path)
 
 
@@ -221,7 +238,11 @@ def output_celonis(oct):
 
 
 def output_yaml(oct):
-    file_path = input("insert the path where the YAML should be inserted -> ")
+    user_path = os.path.expanduser('~')
+    default_yaml_path = os.path.join(user_path, "output.yaml")
+    file_path = input("insert the path where the YAML should be inserted (default: "+default_yaml_path+") -> ")
+    if len(file_path) == 0:
+        file_path = default_yaml_path
     F = open(file_path, "w")
     stru = export_knowledge_yaml(oct)
     F.write("YAML for knowledge model:\n\n")
