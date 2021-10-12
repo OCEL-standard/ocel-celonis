@@ -212,7 +212,7 @@ def cli():
     if len(selected_object_types) == 0:
         selected_object_types = object_types
     default_transitions = get_transitions(log, allowed_object_types=selected_object_types)
-    allowed_transitions = input("Insert the transitions to consider in the model (IMPORTANT: avoid any cycle), where the entities of a transition are split by a , and the entities by ; without any space (available ones: "+default_transitions+")  ->")
+    allowed_transitions = input("Insert the transitions to consider in the model (IMPORTANT: avoid any cycle), where the entities of a transition are split by a , and the entities by ; without any space (default: "+default_transitions+")  ->")
     if len(allowed_transitions) == 0:
         allowed_transitions = None
     else:
@@ -228,6 +228,7 @@ def cli():
     elif output_mode == 2:
         output_celonis(oct)
     output_yaml(oct)
+    output_pql(oct)
     input("----- FINISHED -----")
 
 
@@ -247,7 +248,7 @@ def output_csv(oct):
 
 def output_celonis(oct):
     url = input("Insert Celonis URL -> ")
-    api = input("Insert Celonis API -> ")
+    api = input("Insert Celonis API key -> ")
     celonis = get_celonis(api_token=api, celonis_url=url)
     data_pool_name = input("Insert the name of the target data pool (must be empty) -> ")
     data_pool = celonis.pools.find(data_pool_name)
@@ -270,6 +271,22 @@ def output_yaml(oct):
     F.write("\n\nYAML for process model:\n\n")
     F.write(stru)
     F.write("\n")
+    F.close()
+
+
+def output_pql(oct):
+    user_path = os.path.expanduser('~')
+    default_pql_path = os.path.join(user_path, "pql.txt")
+    file_path = input("insert the path where the PQL queries should be saved (default: "+default_pql_path+") -> ")
+    if len(file_path) == 0:
+        file_path = default_pql_path
+    F = open(file_path, "w")
+    for trans in oct.transitions:
+        ot0 = trans[0]
+        ot1 = trans[1]
+        F.write("\n")
+        F.write("\""+ot0+"_EVENTS\".\"EVID_"+ot0+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", TRANSIT_COLUMN( TIMESTAMP_INTERLEAVED_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\" ), \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\" ), TRANSIT_COLUMN( TIMESTAMP_INTERLEAVED_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\" ), \""+ot1+"_EVENTS\".\"EVID_"+ot1+"\" )")
+        F.write("\n")
     F.close()
 
 
