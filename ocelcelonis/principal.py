@@ -33,6 +33,24 @@ def __add_foreign_key(oct, source_table, source_column, target_table, target_col
     #oct.foreign_keys.add((target_table, target_column, source_table, source_column))
 
 
+def get_transitions(log, allowed_object_types=None):
+    transitions = set()
+    for event in log["ocel:events"].values():
+        for objid in event["ocel:omap"]:
+            obj = log["ocel:objects"][objid]
+            objtype = obj["ocel:type"]
+            if allowed_object_types is None or objtype in allowed_object_types:
+                for objid2 in event["ocel:omap"]:
+                    if objid != objid2:
+                        obj2 = log["ocel:objects"][objid2]
+                        objtype2 = obj2["ocel:type"]
+                        if allowed_object_types is None or objtype2 in allowed_object_types:
+                            if objtype < objtype2:
+                                transitions.add((objtype, objtype2))
+    transitions = ";".join(sorted(list(",".join(list(x)) for x in transitions)))
+    return transitions
+
+
 def read_event(log, oct, ev_id, event, allowed_object_types=None, allowed_transitions=None):
     for objid in event["ocel:omap"]:
         obj = log["ocel:objects"][objid]
@@ -193,7 +211,8 @@ def cli():
     selected_object_types = input("Insert the object types to consider separated by a comma without space (default: "+object_types+") ->")
     if len(selected_object_types) == 0:
         selected_object_types = object_types
-    allowed_transitions = input("Insert the transitions to consider in the model (IMPORTANT: avoid any cycle), where the entities of a transition are split by a , and the entities by ; without any space (example: order,packages;order,items)  ->")
+    default_transitions = get_transitions(log, allowed_object_types=selected_object_types)
+    allowed_transitions = input("Insert the transitions to consider in the model (IMPORTANT: avoid any cycle), where the entities of a transition are split by a , and the entities by ; without any space (available ones: "+default_transitions+")  ->")
     if len(allowed_transitions) == 0:
         allowed_transitions = None
     else:
