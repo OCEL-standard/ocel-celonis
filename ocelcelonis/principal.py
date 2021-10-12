@@ -291,7 +291,7 @@ def output_pql(oct):
         F.write("\n")
         F.write("\""+ot0+"_EVENTS\".\"EVID_"+ot0+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", TRANSIT_COLUMN( TIMESTAMP_INTERLEAVED_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\" ), \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\" ), TRANSIT_COLUMN( TIMESTAMP_INTERLEAVED_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\" ), \""+ot1+"_EVENTS\".\"EVID_"+ot1+"\" )")
         F.write("\n")
-        F.write("\""+ot0+"_EVENTS\".\"EVID_"+ot0+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", TRANSIT_COLUMN( MATCH_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", \""+ot0+"_EVENTS\".\"EVID_GENERAL\", \""+ot1+"_EVENTS\".\"EVID_GENERAL\" ), \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\" ), TRANSIT_COLUMN( TIMESTAMP_INTERLEAVED_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", \""+ot0+"_EVENTS\".\"EVID_GENERAL\", \""+ot1+"_EVENTS\".\"EVID_GENERAL\" ), \""+ot1+"_EVENTS\".\"EVID_"+ot1+"\" )")
+        F.write("\""+ot0+"_EVENTS\".\"EVID_"+ot0+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", TRANSIT_COLUMN( MATCH_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", \""+ot1+"_EVENTS\".\"EVID_GENERAL\", \""+ot0+"_EVENTS\".\"EVID_GENERAL\" ), \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\" ), TRANSIT_COLUMN( MATCH_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", \""+ot1+"_EVENTS\".\"EVID_GENERAL\", \""+ot0+"_EVENTS\".\"EVID_GENERAL\" ), \""+ot1+"_EVENTS\".\"EVID_"+ot1+"\" )")
         F.write("\n")
     F.close()
 
