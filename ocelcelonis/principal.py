@@ -200,36 +200,40 @@ def upload_to_celonis(oct, data_pool, data_model):
 
 
 def cli():
-    print("\n\nWelcome")
-    log_path = input("Insert the path to the OCEL event log -> ")
-    log = ocel.import_log(log_path)
-    object_types = set()
-    for ev_id, ev in log["ocel:events"].items():
-        for obj_id in ev["ocel:omap"]:
-            object_types.add(log["ocel:objects"][obj_id]["ocel:type"])
-    object_types = ",".join(sorted(list(object_types)))
-    selected_object_types = input("Insert the object types to consider separated by a comma without space (default: "+object_types+") ->")
-    if len(selected_object_types) == 0:
-        selected_object_types = object_types
-    default_transitions = get_transitions(log, allowed_object_types=selected_object_types)
-    allowed_transitions = input("Insert the transitions to consider in the model (IMPORTANT: avoid any cycle), where the entities of a transition are split by a , and the entities by ; without any space (default: "+default_transitions+")  ->")
-    if len(allowed_transitions) == 0:
-        allowed_transitions = None
-    else:
-        allowed_transitions = allowed_transitions.split(";")
-        for i in range(len(allowed_transitions)):
-            allowed_transitions[i] = allowed_transitions[i].split(",")
-            allowed_transitions[i] = tuple(sorted(allowed_transitions[i]))
-    selected_object_types = selected_object_types.split(",")
-    oct = read_ocel(log, allowed_object_types=selected_object_types, allowed_transitions=allowed_transitions)
-    output_mode = int(input("Insert 1) if you want as output the CSVs along with the foreign keys. Insert 2) if you want to connect directly to Celonis -> "))
-    if output_mode == 1:
-        output_csv(oct)
-    elif output_mode == 2:
-        output_celonis(oct)
-    output_yaml(oct)
-    output_pql(oct)
-    input("----- FINISHED -----")
+    try:
+        print("\n\nWelcome")
+        log_path = input("Insert the path to the OCEL event log -> ")
+        log = ocel.import_log(log_path)
+        object_types = set()
+        for ev_id, ev in log["ocel:events"].items():
+            for obj_id in ev["ocel:omap"]:
+                object_types.add(log["ocel:objects"][obj_id]["ocel:type"])
+        object_types = ",".join(sorted(list(object_types)))
+        selected_object_types = input("Insert the object types to consider separated by a comma without space (default: "+object_types+") ->")
+        if len(selected_object_types) == 0:
+            selected_object_types = object_types
+        default_transitions = get_transitions(log, allowed_object_types=selected_object_types)
+        allowed_transitions = input("Insert the transitions to consider in the model (IMPORTANT: avoid any cycle), where the entities of a transition are split by a , and the entities by ; without any space (default: "+default_transitions+")  ->")
+        if len(allowed_transitions) == 0:
+            allowed_transitions = None
+        else:
+            allowed_transitions = allowed_transitions.split(";")
+            for i in range(len(allowed_transitions)):
+                allowed_transitions[i] = allowed_transitions[i].split(",")
+                allowed_transitions[i] = tuple(sorted(allowed_transitions[i]))
+        selected_object_types = selected_object_types.split(",")
+        oct = read_ocel(log, allowed_object_types=selected_object_types, allowed_transitions=allowed_transitions)
+        output_mode = int(input("Insert 1) if you want as output the CSVs along with the foreign keys. Insert 2) if you want to connect directly to Celonis -> "))
+        if output_mode == 1:
+            output_csv(oct)
+        elif output_mode == 2:
+            output_celonis(oct)
+        output_yaml(oct)
+        output_pql(oct)
+        input("----- FINISHED WITH SUCCESS -----")
+    except:
+        traceback.print_exc()
+        input("----- FINISHED WITH ERROR -----")
 
 
 def output_csv(oct):
