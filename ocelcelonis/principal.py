@@ -56,7 +56,7 @@ def read_event(log, oct, ev_id, event, allowed_object_types=None, allowed_transi
         obj = log["ocel:objects"][objid]
         objtype = obj["ocel:type"]
         if allowed_object_types is None or objtype in allowed_object_types:
-            ev = {"EVID_" + objtype: ev_id + ":" + objid, "CASE_" + objtype: objid,
+            ev = {"EVID_" + objtype: ev_id + ":" + objid, "EVID_general": ev_id, "CASE_" + objtype: objid,
                   "ACT_" + objtype: event["ocel:activity"], "TIME_" + objtype: event["ocel:timestamp"],
                   "SORT_TIME_" + objtype: event["ocel:timestamp"]}
             oct.object_types.add(objtype)
@@ -290,6 +290,8 @@ def output_pql(oct):
         ot1 = trans[1]
         F.write("\n")
         F.write("\""+ot0+"_EVENTS\".\"EVID_"+ot0+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", TRANSIT_COLUMN( TIMESTAMP_INTERLEAVED_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\" ), \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\" ), TRANSIT_COLUMN( TIMESTAMP_INTERLEAVED_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\" ), \""+ot1+"_EVENTS\".\"EVID_"+ot1+"\" )")
+        F.write("\n")
+        F.write("\""+ot0+"_EVENTS\".\"EVID_"+ot0+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", TRANSIT_COLUMN( MATCH_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", \""+ot0+"_EVENTS\".\"EVID_GENERAL\", \""+ot1+"_EVENTS\".\"EVID_GENERAL\" ), \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\" ), TRANSIT_COLUMN( TIMESTAMP_INTERLEAVED_MINER ( \""+ot1+"_EVENTS\".\"ACT_"+ot1+"\", \""+ot0+"_EVENTS\".\"ACT_"+ot0+"\", \""+ot0+"_EVENTS\".\"EVID_GENERAL\", \""+ot1+"_EVENTS\".\"EVID_GENERAL\" ), \""+ot1+"_EVENTS\".\"EVID_"+ot1+"\" )")
         F.write("\n")
     F.close()
 
